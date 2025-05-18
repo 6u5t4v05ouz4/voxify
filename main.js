@@ -125,8 +125,9 @@ function saveConfig(apiKey) {
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 400,
-    height: 500,
+    width: 480,
+    height: 600,
+    backgroundColor: '#1e1e2e', // Cor de fundo escura para combinar com o tema
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -139,7 +140,7 @@ function createWindow() {
   win.loadFile('index.html');
   
   // For debugging
-  win.webContents.openDevTools();
+  // win.webContents.openDevTools();
 
   // Hide window when closed instead of quitting
   win.on('close', (event) => {
