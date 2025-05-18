@@ -358,8 +358,10 @@ function createMenu() {
               },
               minimizable: false,
               maximizable: false,
-              resizable: false,
-              fullscreenable: false
+              resizable: true,
+              fullscreenable: false,
+              frame: false,
+              autoHideMenuBar: true
             });
                 
             // Criar HTML para o formulário de API Key
@@ -375,11 +377,15 @@ function createMenu() {
                   padding: 20px;
                   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                   color: #e0e0e0;
+                  overflow-x: hidden;
+                  margin: 0;
                 }
                 .container {
                   display: flex;
                   flex-direction: column;
                   gap: 15px;
+                  width: 100%;
+                  box-sizing: border-box;
                 }
                 h3 {
                   margin-top: 0;
@@ -393,6 +399,7 @@ function createMenu() {
                   background-color: #3a3a4c;
                   color: #e0e0e0;
                   box-sizing: border-box;
+                  max-width: 100%;
                 }
                 .buttons {
                   display: flex;
