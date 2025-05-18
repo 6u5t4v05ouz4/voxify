@@ -122,7 +122,3 @@ ISC
 - Icons by [Icons8](https://icons8.com/)
 
 ---
-
-## Project Roadmap
-
-See [`todo.md`](./todo.md) for a detailed implementation plan and future enhancements.
