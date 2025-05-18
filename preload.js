@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('electron', {
   // From main to renderer
   receive: (channel, func) => {
     // List of allowed channels for receiving
-    const validChannels = ['play-audio', 'error'];
+    const validChannels = ['play-audio', 'error', 'audio-ready', 'audio-error'];
     if (validChannels.includes(channel)) {
       // Remove old listener to prevent duplication
       ipcRenderer.removeAllListeners(channel);

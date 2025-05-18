@@ -194,10 +194,13 @@ async function narrateText(text) {
     }
     
     // Send audio data to renderer process
-    win.webContents.send('play-audio', Buffer.from(response.data).toString('base64'));
+    win.webContents.send('audio-ready', Buffer.from(response.data).toString('base64'));
   } catch (error) {
     console.error('Error with OpenAI API:', error);
     let errorMessage = 'Failed to narrate text';
+    
+    // Send error to renderer process using the new audio-error channel
+    win.webContents.send('audio-error', errorMessage);
     
     if (error.response) {
       // The request was made and the server responded with a status code

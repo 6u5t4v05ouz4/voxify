@@ -51,6 +51,27 @@
     
     <div id="status" class="status"></div>
     
+    <div class="audio-player">
+      <div class="audio-controls">
+        <button id="playPauseBtn" class="control-btn">
+          <span class="play-icon">▶</span>
+          <span class="pause-icon" style="display:none;">⏸</span>
+        </button>
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div class="progress-fill"></div>
+          </div>
+          <div class="time-display">
+            <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+          </div>
+        </div>
+        <div class="volume-control">
+          <span class="volume-icon">🔊</span>
+          <input type="range" id="volumeSlider" min="0" max="100" value="100">
+        </div>
+      </div>
+    </div>
+    
     <div class="instructions">
       <h3>How to use:</h3>
       <ol>
@@ -82,6 +103,106 @@
         window.electron.send('set-api-key', savedApiKey);
         showStatus('API key loaded', 'success');
       }
+      
+      // Inicializar controles de áudio
+      initAudioControls();
+    });
+    
+    // Funções para controle de áudio
+    function initAudioControls() {
+      const audioPlayer = document.getElementById('audioPlayer');
+      const playPauseBtn = document.getElementById('playPauseBtn');
+      const progressBar = document.querySelector('.progress-fill');
+      const progressContainer = document.querySelector('.progress-bar');
+      const volumeSlider = document.getElementById('volumeSlider');
+      const currentTimeDisplay = document.getElementById('currentTime');
+      const durationDisplay = document.getElementById('duration');
+      const playIcon = document.querySelector('.play-icon');
+      const pauseIcon = document.querySelector('.pause-icon');
+      
+      // Esconder controles de áudio inicialmente até que haja áudio disponível
+      document.querySelector('.audio-player').style.display = 'none';
+      
+      // Função para formatar tempo (segundos para MM:SS)
+      function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+      }
+      
+      // Botão play/pause
+      playPauseBtn.addEventListener('click', () => {
+        if (audioPlayer.paused) {
+          audioPlayer.play();
+          playIcon.style.display = 'none';
+          pauseIcon.style.display = 'inline';
+        } else {
+          audioPlayer.pause();
+          playIcon.style.display = 'inline';
+          pauseIcon.style.display = 'none';
+        }
+      });
+      
+      // Atualizar barra de progresso durante a reprodução
+      audioPlayer.addEventListener('timeupdate', () => {
+        const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+        progressBar.style.width = `${progress}%`;
+        currentTimeDisplay.textContent = formatTime(audioPlayer.currentTime);
+      });
+      
+      // Atualizar duração quando os metadados do áudio estiverem disponíveis
+      audioPlayer.addEventListener('loadedmetadata', () => {
+        durationDisplay.textContent = formatTime(audioPlayer.duration);
+        document.querySelector('.audio-player').style.display = 'block';
+      });
+      
+      // Permitir clique na barra de progresso para navegar no áudio
+      progressContainer.addEventListener('click', (e) => {
+        const rect = progressContainer.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        audioPlayer.currentTime = pos * audioPlayer.duration;
+      });
+      
+      // Controle de volume
+      volumeSlider.addEventListener('input', () => {
+        audioPlayer.volume = volumeSlider.value / 100;
+      });
+      
+      // Quando o áudio terminar
+      audioPlayer.addEventListener('ended', () => {
+        progressBar.style.width = '0%';
+        playIcon.style.display = 'inline';
+        pauseIcon.style.display = 'none';
+        currentTimeDisplay.textContent = '0:00';
+      });
+    }
+    
+    // Quando um novo áudio é recebido da API (novo canal)
+    window.electron.receive('audio-ready', (audioData) => {
+      const audioPlayer = document.getElementById('audioPlayer');
+      audioPlayer.src = `data:audio/mp3;base64,${audioData}`;
+      document.querySelector('.audio-player').style.display = 'block';
+      document.querySelector('.play-icon').style.display = 'none';
+      document.querySelector('.pause-icon').style.display = 'inline';
+      audioPlayer.play();
+      showStatus('Áudio pronto para reprodução', 'success');
+    });
+    
+    // Compatibilidade com o canal antigo 'play-audio'
+    window.electron.receive('play-audio', (audioData) => {
+      const audioPlayer = document.getElementById('audioPlayer');
+      audioPlayer.src = `data:audio/mp3;base64,${audioData}`;
+      document.querySelector('.audio-player').style.display = 'block';
+      document.querySelector('.play-icon').style.display = 'none';
+      document.querySelector('.pause-icon').style.display = 'inline';
+      audioPlayer.play();
+      showStatus('Áudio pronto para reprodução', 'success');
+    });
+    
+    // Quando ocorre um erro na reprodução de áudio
+    window.electron.receive('audio-error', (errorMsg) => {
+      showStatus(`Erro de áudio: ${errorMsg}`, 'error');
+      document.querySelector('.audio-player').style.display = 'none';
     });
     
     document.getElementById('saveKey').addEventListener('click', () => {
