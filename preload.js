@@ -5,7 +5,7 @@ contextBridge.exposeInMainWorld('electron', {
   // From renderer to main
   send: (channel, data) => {
     // List of allowed channels for sending
-    const validChannels = ['set-api-key', 'show-window'];
+    const validChannels = ['set-api-key', 'show-window', 'api-key-dialog-response'];
     if (validChannels.includes(channel)) {
       ipcRenderer.send(channel, data);
     }
@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('electron', {
   // From main to renderer
   receive: (channel, func) => {
     // List of allowed channels for receiving
-    const validChannels = ['play-audio', 'error', 'audio-ready', 'audio-error'];
+    const validChannels = ['play-audio', 'error', 'audio-ready', 'audio-error', 'api-key-updated', 'show-api-key-dialog'];
     if (validChannels.includes(channel)) {
       // Remove old listener to prevent duplication
       ipcRenderer.removeAllListeners(channel);

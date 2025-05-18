@@ -12,6 +12,7 @@
     }
     .form-group {
       margin-bottom: 15px;
+      position: relative;
     }
     label {
       display: block;
@@ -33,6 +34,46 @@
       display: block;
       opacity: 1;
     }
+    .settings-icon {
+      position: absolute;
+      right: -30px;
+      top: 32px;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--text-color);
+    }
+    .settings-icon:hover {
+      color: var(--heading-color);
+    }
+    .settings-menu {
+      position: absolute;
+      right: -150px;
+      top: 60px;
+      background: var(--container-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      padding: 10px;
+      width: 180px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 100;
+    }
+    .settings-menu.show {
+      display: block;
+    }
+    .settings-option {
+      padding: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+    .settings-option:hover {
+      background: var(--input-bg);
+      border-radius: 4px;
+    }
+    .settings-option input[type="checkbox"] {
+      margin-right: 8px;
+    }
   </style>
 </head>
 <body>
@@ -40,14 +81,6 @@
     <h1>VOXIFY</h1>
     
     <div id="errorStatus" class="status"></div>
-    
-    <div class="form-group">
-      <label for="apiKey">OpenAI API Key</label>
-      <input type="password" id="apiKey" placeholder="Enter your OpenAI API key" autocomplete="off">
-      <small class="form-text text-muted">Your key is stored locally only.</small>
-    </div>
-    
-    <button id="saveKey" class="btn-primary">Save Key</button>
     
     <div id="status" class="status"></div>
     
@@ -73,13 +106,13 @@
     </div>
     
     <div class="instructions">
-      <h3>How to use:</h3>
+      <h3>Como usar:</h3>
       <ol>
-        <li>Enter your OpenAI API key above and click "Save API Key"</li>
-        <li>Select text in any application and press Ctrl+C to copy it</li>
-        <li>Press Ctrl+Shift+N to hear the selected text</li>
+        <li>Configure sua OpenAI API Key no menu Configurações > Configurar API Key</li>
+        <li>Selecione texto em qualquer aplicação e pressione Ctrl+C para copiá-lo</li>
+        <li>Pressione Ctrl+Shift+N para ouvir o texto selecionado</li>
       </ol>
-      <p><strong>Note:</strong> Keep this app running in the background.</p>
+      <p><strong>Nota:</strong> Mantenha este aplicativo rodando em segundo plano.</p>
     </div>
   </div>
 
@@ -92,20 +125,28 @@
     // Load saved API key if exists
     document.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded');
-      // Focus the API key input
-      const apiKeyInput = document.getElementById('apiKey');
-      if (apiKeyInput) apiKeyInput.focus();
-      
-      // Check for saved API key
-      const savedApiKey = localStorage.getItem('openai_api_key');
-      if (savedApiKey) {
-        document.getElementById('apiKey').value = savedApiKey;
-        window.electron.send('set-api-key', savedApiKey);
-        showStatus('API key loaded', 'success');
-      }
       
       // Inicializar controles de áudio
       initAudioControls();
+    });
+    
+    // Mostrar diálogo para inserir API Key quando solicitado pelo processo principal
+    window.electron.receive('show-api-key-dialog', () => {
+      const apiKey = prompt('Insira sua OpenAI API Key:', '');
+      if (apiKey !== null) {
+        // Enviar no formato de objeto para compatibilidade com o novo formato
+        window.electron.send('api-key-dialog-response', { canceled: false, apiKey: apiKey });
+      } else {
+        // Usuário cancelou o diálogo
+        window.electron.send('api-key-dialog-response', { canceled: true, apiKey: '' });
+      }
+    });
+    
+    // Escutar por atualizações da API Key do processo principal
+    window.electron.receive('api-key-updated', (success) => {
+      if (success) {
+        showStatus('API Key configurada com sucesso!', 'success');
+      }
     });
     
     // Funções para controle de áudio
@@ -205,27 +246,7 @@
       document.querySelector('.audio-player').style.display = 'none';
     });
     
-    document.getElementById('saveKey').addEventListener('click', () => {
-      console.log('Save button clicked');
-      const apiKey = document.getElementById('apiKey').value.trim();
-      if (apiKey) {
-        // Save to localStorage
-        localStorage.setItem('openai_api_key', apiKey);
-        
-        // Send to main process
-        window.electron.send('set-api-key', apiKey);
-        showStatus('API key saved successfully!', 'success');
-      } else {
-        showStatus('Please enter a valid API key', 'error');
-      }
-    });
-    
-    // Handle Enter key in API key input
-    document.getElementById('apiKey').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        document.getElementById('saveKey').click();
-      }
-    });
+
 
     // Handle audio playback
     window.electron.receive('play-audio', (audioData) => {
@@ -264,10 +285,30 @@
       statusElement.textContent = message;
       statusElement.className = `status ${type} show`;
       
-      // Auto-hide after delay
+      // Estilização adicional baseada no tipo
+      if (type === 'success') {
+        statusElement.style.backgroundColor = '#28a745';
+        statusElement.style.color = 'white';
+        statusElement.style.padding = '10px';
+        statusElement.style.fontWeight = 'bold';
+      } else if (type === 'error') {
+        statusElement.style.backgroundColor = '#dc3545';
+        statusElement.style.color = 'white';
+        statusElement.style.padding = '10px';
+        statusElement.style.fontWeight = 'bold';
+      } else {
+        // Estilo padrão para outros tipos
+        statusElement.style.backgroundColor = '';
+        statusElement.style.color = '';
+        statusElement.style.padding = '';
+        statusElement.style.fontWeight = '';
+      }
+      
+      // Auto-hide após delay (mais longo para erros e sucessos)
+      const delay = (type === 'error' || type === 'success') ? 10000 : 5000;
       statusElement.timeoutId = setTimeout(() => {
         statusElement.classList.remove('show');
-      }, 5000);
+      }, delay);
     }
     
     // Helper function specifically for errors
